@@ -15,7 +15,7 @@ var builtinCommands = map[string]bool{
 	"cd"   : true,
 }
 
-func Handler(command string, args []string) string {
+func Handler(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
 	switch command {
 	case "echo":
 		return handleEcho(args)
@@ -26,67 +26,67 @@ func Handler(command string, args []string) string {
 	case "cd":
 		return handleCd(args)
 	default:
-		return handleExternal(command, args)
+		return handleExternal(command, args, outStream, errStream)
 	}
 }
 
-func handleEcho(args []string) string {
-	return strings.Join(args, " ")
+func handleEcho(args []string) (string, error) {
+	return strings.Join(args, " "), nil
 }
 
-func handleType(args []string) string {
+func handleType(args []string) (string, error) {
 	cmd := args[0]
 	_, ok := builtinCommands[cmd]
 	if ok {
-		return fmt.Sprintf("%v is a shell builtin", cmd)
+		return fmt.Sprintf("%v is a shell builtin", cmd), nil
 	}
 	path, err := exec.LookPath(cmd)
 	if err == nil {
-		return fmt.Sprintf("%v is %v", cmd, path)
+		return fmt.Sprintf("%v is %v", cmd, path), nil
 	}
-	return fmt.Sprintf("%v: not found", cmd)
+	return "", fmt.Errorf("%v: not found", cmd)
 }
 
-func handleExternal(command string, args []string) string {
+func handleExternal(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
 	cmd := exec.Command(command, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = outStream
+	cmd.Stderr = errStream
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Sprintf("%v: command not found", command)
+		return "", fmt.Errorf("%v: command not found", command)
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return fmt.Sprintf("%s", err.Error())
+		return "", nil
 	}
 
-	return "";
+	return "", nil;
 }
 
-func handlePwd(args []string) string {
+func handlePwd(args []string) (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return err.Error()
+		return "", err
 	}
-	return dir
+	return dir, nil
 }
 
-func handleCd(args []string) string {
+func handleCd(args []string) (string, error) {
 	newDir := args[0]
 	if newDir == "~" {
 		d, err := os.UserHomeDir()
 		if err != nil {
-			return "home directory not defined"
+			return "", fmt.Errorf("home directory not defined")
 		}
 		newDir = d
 	}
 	_, err := os.Stat(newDir)
 	if err != nil {
-		return fmt.Sprintf("cd: %v: No such file or directory", newDir)
+		return "", fmt.Errorf("cd: %v: No such file or directory", newDir)
 	}
 	err = os.Chdir(newDir)
 	if err != nil {
-		return fmt.Sprintf("cd: %v: No such file or directory", newDir)
+		return "", fmt.Errorf("cd: %v: No such file or directory", newDir)
 	}
-	return ""
+	return "", nil
 }
