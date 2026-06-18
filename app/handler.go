@@ -11,6 +11,7 @@ var builtinCommands = map[string]bool{
 	"echo" : true,
 	"exit" : true,
 	"type" : true,
+	"pwd"  : true,
 }
 
 func Handler(command string, args []string) string {
@@ -19,6 +20,8 @@ func Handler(command string, args []string) string {
 		return handleEcho(args)
 	case "type":
 		return handleType(args)
+	case "pwd":
+		return handlePwd(args)
 	default:
 		return handleExternal(command, args)
 	}
@@ -51,8 +54,16 @@ func handleExternal(command string, args []string) string {
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return fmt.Sprintf(err.Error())
+		return fmt.Sprintf("%s", err.Error())
 	}
 
 	return "";
+}
+
+func handlePwd(args []string) string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return err.Error()
+	}
+	return dir
 }
