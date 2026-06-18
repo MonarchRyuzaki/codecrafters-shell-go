@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"fmt"
+	"os/exec"
 )
 
 var builtinCommands = map[string]bool{
@@ -27,9 +28,14 @@ func handleEcho(args []string) string {
 }
 
 func handleType(args []string) string {
-	_, ok := builtinCommands[args[0]]
+	cmd := args[0]
+	_, ok := builtinCommands[cmd]
 	if ok {
-		return fmt.Sprintf("%v is a shell builtin", args[0])
+		return fmt.Sprintf("%v is a shell builtin", cmd)
 	}
-	return fmt.Sprintf("%v: not found", args[0])
+	path, err := exec.LookPath(cmd)
+	if err == nil {
+		return fmt.Sprintf("%v is %v", cmd, path)
+	}
+	return fmt.Sprintf("%v: not found", cmd)
 }
