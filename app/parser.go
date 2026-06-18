@@ -23,6 +23,12 @@ func parseInput(input string) []string {
 			continue
 		}
 
+		if c == '\\' && !inSingleQuote && !inDoubleQuote && i < len(input) - 1 {
+			current.WriteByte(input[i+1])
+			i++; 
+			continue
+		}
+
 		if (c == ' ' || c == '\t') && !inSingleQuote && !inDoubleQuote {
 			if current.Len() > 0 {
 				args = append(args, current.String())
