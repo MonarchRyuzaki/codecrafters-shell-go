@@ -23,10 +23,19 @@ func parseInput(input string) []string {
 			continue
 		}
 
-		if c == '\\' && !inSingleQuote && !inDoubleQuote && i < len(input) - 1 {
-			current.WriteByte(input[i+1])
-			i++; 
-			continue
+		if c == '\\' && !inSingleQuote && i < len(input) - 1 {
+			nextChar := input[i+1]
+			if inDoubleQuote {
+				if nextChar == '"' || nextChar == '\\' || nextChar == '$' || nextChar == '`' {
+					current.WriteByte(nextChar)
+					i++
+					continue
+            	}
+			} else {
+				current.WriteByte(nextChar)
+				i++; 
+				continue
+			}
 		}
 
 		if (c == ' ' || c == '\t') && !inSingleQuote && !inDoubleQuote {
