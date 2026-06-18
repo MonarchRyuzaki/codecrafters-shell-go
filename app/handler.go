@@ -12,6 +12,7 @@ var builtinCommands = map[string]bool{
 	"exit" : true,
 	"type" : true,
 	"pwd"  : true,
+	"cd"   : true,
 }
 
 func Handler(command string, args []string) string {
@@ -22,6 +23,8 @@ func Handler(command string, args []string) string {
 		return handleType(args)
 	case "pwd":
 		return handlePwd(args)
+	case "cd":
+		return handleCd(args)
 	default:
 		return handleExternal(command, args)
 	}
@@ -66,4 +69,24 @@ func handlePwd(args []string) string {
 		return err.Error()
 	}
 	return dir
+}
+
+func handleCd(args []string) string {
+	newDir := args[0]
+	if newDir == "~" {
+		d, err := os.UserHomeDir()
+		if err != nil {
+			return "home directory not defined"
+		}
+		newDir = d
+	}
+	_, err := os.Stat(newDir)
+	if err != nil {
+		return fmt.Sprintf("cd: %v: No such file or directory", newDir)
+	}
+	err = os.Chdir(newDir)
+	if err != nil {
+		return fmt.Sprintf("cd: %v: No such file or directory", newDir)
+	}
+	return ""
 }
