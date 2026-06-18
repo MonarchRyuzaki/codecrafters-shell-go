@@ -25,6 +25,9 @@ func main() {
 		if command == "exit" {
 			break
 		}
-		fmt.Println(Handler(command, args))
+		out := Handler(command, args)
+		if out != "" {
+			fmt.Println(out)
+		}
 	}
 }

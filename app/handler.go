@@ -1,9 +1,10 @@
 package main
 
 import (
-	"strings"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 )
 
 var builtinCommands = map[string]bool{
@@ -19,7 +20,7 @@ func Handler(command string, args []string) string {
 	case "type":
 		return handleType(args)
 	default:
-		return fmt.Sprintf("%v: command not found", command)
+		return handleExternal(command, args)
 	}
 }
 
@@ -38,4 +39,20 @@ func handleType(args []string) string {
 		return fmt.Sprintf("%v is %v", cmd, path)
 	}
 	return fmt.Sprintf("%v: not found", cmd)
+}
+
+func handleExternal(command string, args []string) string {
+	cmd := exec.Command(command, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Sprintf("%v: command not found", command)
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Sprintf(err.Error())
+	}
+
+	return "";
 }
