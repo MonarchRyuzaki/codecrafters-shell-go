@@ -41,6 +41,9 @@ func PrintJobs() string {
 		if i == len(jobs)-1 {
 			marker = "+"
 		}
+		if i == len(jobs) - 2 {
+			marker = "-"
+		}
 
 		fmt.Fprintf(&sb, "[%d]%s  %-24s%s\n", job.ID, marker, job.Status, job.Command)
 	}
