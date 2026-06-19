@@ -81,21 +81,40 @@ func readCommand() (string, error) {
 				command = append(command, []byte(completion)...)
 
 				fmt.Print(completion)
-				lastTabPress = false
-			} else {
-				if lastTabPress == false {
-					fmt.Print("\a")
-					lastTabPress = true
-				} else {
-					fmt.Print("\r\n")
-					
-					// Sort the matches alphabetically (Go maps are random order!)
-					sort.Strings(matches)
-					
-					fmt.Print(strings.Join(matches, "  ") + "\r\n")
-					fmt.Print("$ " + string(command))
-					lastTabPress = false
+				lastTabPress = false 
+			} else if len(matches) > 1 {
+				lcp := matches[0]
+				for _, match := range matches[1:] {
+					i := 0
+					for i < len(lcp) && i < len(match) && lcp[i] == match[i] {
+						i++
+					}
+					lcp = lcp[:i]
 				}
+
+				if len(lcp) > len(typedStr) {
+					completion := lcp[len(typedStr):]
+					command = append(command, []byte(completion)...)
+					fmt.Print(completion)
+					
+					fmt.Print("\a") 
+					lastTabPress = false
+				} else {
+					if lastTabPress == false {
+						fmt.Print("\a")
+						lastTabPress = true
+					} else {
+						fmt.Print("\r\n")
+						sort.Strings(matches)
+						
+						fmt.Print(strings.Join(matches, "  ") + "\r\n")
+						fmt.Print("$ " + string(command))
+						lastTabPress = false
+					}
+				}
+			} else {
+				fmt.Print("\a")
+				lastTabPress = false
 			}
 
 		case '\x03': // Ctrl + C
