@@ -19,7 +19,7 @@ var builtinCommands = map[string]bool{
 
 var completionScript = map[string]string{}
 
-func Handler(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
+func Handler(command string, args []string, outStream *os.File, errStream *os.File, isBg bool) (string, error) {
 	switch command {
 	case "echo":
 		return handleEcho(args)
@@ -34,7 +34,7 @@ func Handler(command string, args []string, outStream *os.File, errStream *os.Fi
 	case "jobs":
 		return handleJobs(args)
 	default:
-		return handleExternal(command, args, outStream, errStream)
+		return handleExternal(command, args, outStream, errStream, isBg)
 	}
 }
 
@@ -55,13 +55,19 @@ func handleType(args []string) (string, error) {
 	return "", fmt.Errorf("%v: not found", cmd)
 }
 
-func handleExternal(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
+func handleExternal(command string, args []string, outStream *os.File, errStream *os.File, isBg bool) (string, error) {
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = outStream
 	cmd.Stderr = errStream
 
 	if err := cmd.Start(); err != nil {
 		return "", fmt.Errorf("%v: command not found", command)
+	}
+
+	if isBg {
+		fmt.Printf("[%v] %d\n", bgCounter, cmd.Process.Pid)
+		bgCounter++
+		return "", nil
 	}
 
 	if err := cmd.Wait(); err != nil {

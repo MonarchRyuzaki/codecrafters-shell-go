@@ -63,7 +63,6 @@ func readCommand() (string, error) {
 			return string(command), nil
 		case '\t': // Tab
 			command, lastTabPress = handleAutocomplete(command, lastTabPress)
-
 		case '\x03': // Ctrl + C
 			fmt.Print("^C\r\n")
 			term.Restore(int(os.Stdin.Fd()), oldState)
@@ -125,7 +124,12 @@ func main() {
 		if command == "exit" {
 			break
 		}
-		out, err := Handler(command, args, outStream, errStream)
+		isBackground := false
+		if len(args) > 0 && args[len(args) - 1] == "&" {
+			isBackground = true
+			args = args[:len(args)-1]
+		}
+		out, err := Handler(command, args, outStream, errStream, isBackground)
 		if err != nil {
 			fmt.Fprintf(errStream, "%s\n", err.Error())
 		} else if out != "" {
