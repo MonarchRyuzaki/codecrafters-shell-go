@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"golang.org/x/term"
@@ -50,6 +51,7 @@ func readCommand() (string, error) {
 
 	var command []byte
 	buf := make([]byte, 1)
+	lastTabPress := false
 
 	for {
 		_, err := os.Stdin.Read(buf)
@@ -79,8 +81,21 @@ func readCommand() (string, error) {
 				command = append(command, []byte(completion)...)
 
 				fmt.Print(completion)
+				lastTabPress = false
 			} else {
-				fmt.Print("\a")
+				if lastTabPress == false {
+					fmt.Print("\a")
+					lastTabPress = true
+				} else {
+					fmt.Print("\r\n")
+					
+					// Sort the matches alphabetically (Go maps are random order!)
+					sort.Strings(matches)
+					
+					fmt.Print(strings.Join(matches, "  ") + "\r\n")
+					fmt.Print("$ " + string(command))
+					lastTabPress = false
+				}
 			}
 
 		case '\x03': // Ctrl + C
@@ -88,11 +103,13 @@ func readCommand() (string, error) {
 			term.Restore(int(os.Stdin.Fd()), oldState)
 			os.Exit(0)
 		case '\x7f', '\b': // Backspace
+			lastTabPress = false 
 			if len(command) > 0 {
 				command = command[:len(command)-1]
 				fmt.Print("\b \b")
 			}
 		default: // Normal character
+			lastTabPress = false 
 			command = append(command, buf[0])
 			fmt.Print(string(buf[0]))
 		}
