@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 )
@@ -16,8 +17,15 @@ func handleAutocomplete(command []byte, lastTabPress bool) ([]byte, bool) {
 		return completeCommand(command, typedStr, lastTabPress)
 	}
 
-	baseStr := typedStr[:spaceIndex+1]       
+	baseStr := typedStr[:spaceIndex+1]
 	prefixToComplete := typedStr[spaceIndex+1:]
+	
+	firstSpaceIndex := strings.Index(typedStr, " ")
+	cmdName := typedStr[:firstSpaceIndex]
+	
+	if comPath, exists := completionScript[cmdName]; exists {
+		return completeExternalProgCommand(command, comPath, cmdName, prefixToComplete, lastTabPress)
+	}
 	return completeFile(command, baseStr, prefixToComplete, lastTabPress)
 }
 
@@ -26,11 +34,34 @@ func completeCommand(command []byte, typedPrefix string, lastTabPress bool) ([]b
 
 	for k := range autocompleteSet {
 		if strings.HasPrefix(k, typedPrefix) {
-			matches = append(matches, k) 
+			matches = append(matches, k)
 		}
 	}
 
 	return performCompletion(command, typedPrefix, matches, lastTabPress, true)
+}
+
+func completeExternalProgCommand(command []byte, comPath, baseStr string, prefix string, lastTabPress bool) ([]byte, bool) {
+	cmdName := strings.TrimSpace(baseStr)
+	
+	cmd := exec.Command(comPath, cmdName, prefix, cmdName)
+	
+	out, err := cmd.Output()
+	if err != nil {
+		fmt.Print("\a")
+		return command, false
+	}
+
+	lines := strings.Split(string(out), "\n")
+	var matches []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			matches = append(matches, line)
+		}
+	}
+
+	return performCompletion(command, prefix, matches, lastTabPress, false)
 }
 
 func completeFile(command []byte, baseStr string, prefix string, lastTabPress bool) ([]byte, bool) {
@@ -38,7 +69,7 @@ func completeFile(command []byte, baseStr string, prefix string, lastTabPress bo
 	filePrefix := prefix
 
 	if lastSlash := strings.LastIndex(prefix, "/"); lastSlash != -1 {
-		dir = prefix[:lastSlash+1]        
+		dir = prefix[:lastSlash+1]
 		filePrefix = prefix[lastSlash+1:]
 	}
 
@@ -52,13 +83,13 @@ func completeFile(command []byte, baseStr string, prefix string, lastTabPress bo
 	for _, entry := range entries {
 		if strings.HasPrefix(entry.Name(), filePrefix) {
 			matchName := entry.Name()
-			
+
 			if dir != "." {
 				matchName = dir + matchName
 			}
-			
+
 			if entry.IsDir() {
-				matchName += "/" 
+				matchName += "/"
 			}
 			matches = append(matches, matchName)
 		}
@@ -71,7 +102,7 @@ func completeFile(command []byte, baseStr string, prefix string, lastTabPress bo
 func performCompletion(command []byte, typedPrefix string, matches []string, lastTabPress bool, isCommand bool) ([]byte, bool) {
 	if len(matches) == 1 {
 		completion := matches[0][len(typedPrefix):]
-		
+
 		if isCommand || !strings.HasSuffix(matches[0], "/") {
 			completion += " "
 		}
@@ -79,7 +110,7 @@ func performCompletion(command []byte, typedPrefix string, matches []string, las
 		command = append(command, []byte(completion)...)
 		fmt.Print(completion)
 		return command, false
-		
+
 	} else if len(matches) > 1 {
 		lcp := matches[0]
 		for _, match := range matches[1:] {
