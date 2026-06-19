@@ -50,7 +50,7 @@ func MarkJobDone(id int) {
 	}
 }
 
-func PrintJobs() string {
+func PrintJobs(status string) string {
 	jobsMutex.Lock()
 	defer jobsMutex.Unlock()
 
@@ -65,7 +65,9 @@ func PrintJobs() string {
 			marker = "-"
 		}
 
-		sb.WriteString(fmt.Sprintf("[%d]%s  %-24s%s\n", job.ID, marker, job.Status, job.Command))
+		if status == "" || job.Status == status {
+			sb.WriteString(fmt.Sprintf("[%d]%s  %-24s%s\n", job.ID, marker, job.Status, job.Command))
+		}
 
 		if job.Status != "Done" {
 			remainingJobs = append(remainingJobs, job)

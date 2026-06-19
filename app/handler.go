@@ -134,5 +134,5 @@ func handleComplete(args []string) (string, error) {
 }
 
 func handleJobs(args []string) (string, error) {
-	return PrintJobs(), nil
+	return PrintJobs(""), nil
 }

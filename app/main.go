@@ -84,6 +84,10 @@ func readCommand() (string, error) {
 
 func main() {
 	for {
+		doneJobs := PrintJobs("Done")
+		if doneJobs != "" {
+			fmt.Println(doneJobs)
+		}
 		fmt.Print("$ ")
 		command, err := readCommand()
 		if err != nil {
