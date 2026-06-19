@@ -8,11 +8,12 @@ import (
 )
 
 var builtinCommands = map[string]bool{
-	"echo" : true,
-	"exit" : true,
-	"type" : true,
-	"pwd"  : true,
-	"cd"   : true,
+	"echo":     true,
+	"exit":     true,
+	"type":     true,
+	"pwd":      true,
+	"cd":       true,
+	"complete": true,
 }
 
 func Handler(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
@@ -60,7 +61,7 @@ func handleExternal(command string, args []string, outStream *os.File, errStream
 		return "", nil
 	}
 
-	return "", nil;
+	return "", nil
 }
 
 func handlePwd(args []string) (string, error) {
