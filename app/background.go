@@ -14,8 +14,17 @@ type Job struct {
 }
 
 var jobs []Job
-var bgCounter int = 1
-var jobsMutex sync.Mutex 
+var jobsMutex sync.Mutex
+
+func getJobId() int {
+	max := 0
+	for _, job := range jobs {
+		if max < job.ID {
+			max = job.ID
+		}
+	}
+	return max
+}
 
 func AddJob(pid int, command string, args []string) int {
 	jobsMutex.Lock()
@@ -27,14 +36,13 @@ func AddJob(pid int, command string, args []string) int {
 	}
 
 	job := Job{
-		ID:      bgCounter,
+		ID:      getJobId() + 1,
 		PID:     pid,
 		Command: fullCmd,
 		Status:  "Running",
 	}
 	jobs = append(jobs, job)
 
-	bgCounter++
 	return job.ID
 }
 
