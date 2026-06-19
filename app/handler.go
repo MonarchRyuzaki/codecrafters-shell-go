@@ -109,6 +109,10 @@ func handleComplete(args []string) (string, error) {
 		prog := args[2]
 		completionScript[prog] = path
 		return "", nil
+	case "-r", "-R":
+		prog := args[1]
+		delete(completionScript, prog)
+		return "", nil
 	default:
 		return "", fmt.Errorf("Invalid command");
 	}
