@@ -1,18 +1,80 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
+	"strings"
+
+	"golang.org/x/term"
 )
 
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Print
 
+// ReadCommand puts the terminal in raw mode and reads keystrokes individually
+func readCommand() (string, error) {
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", err
+	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
+
+	var command []byte
+	buf := make([]byte, 1)
+
+	for {
+		_, err := os.Stdin.Read(buf)
+		if err != nil {
+			return string(command), err
+		}
+
+		switch buf[0] {
+		case '\r', '\n': // Enter
+			fmt.Print("\r\n")
+			return string(command), nil
+		case '\t': // Tab
+			typedStr := string(command)
+			var matches []string
+
+			for k, _ := range builtinCommands {
+				if strings.HasPrefix(k, typedStr) {
+					matches = append(matches, k)
+				}
+			}
+
+			if len(matches) == 1 {
+				matchedBuiltin := matches[0]
+
+				completion := matchedBuiltin[len(typedStr):] + " "
+
+				command = append(command, []byte(completion)...)
+
+				fmt.Print(completion)
+			} else {
+				fmt.Print("\a")
+			}
+
+		case '\x03': // Ctrl + C
+			fmt.Print("^C\r\n")
+			term.Restore(int(os.Stdin.Fd()), oldState)
+			os.Exit(0)
+		case '\x7f', '\b': // Backspace
+			if len(command) > 0 {
+				command = command[:len(command)-1]
+				fmt.Print("\b \b")
+			}
+		default: // Normal character
+			command = append(command, buf[0])
+			fmt.Print(string(buf[0]))
+		}
+
+	}
+}
+
 func main() {
 	for {
 		fmt.Print("$ ")
-		command, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		command, err := readCommand()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading input:", err)
 			os.Exit(1)
@@ -41,7 +103,7 @@ func main() {
 				if !config.Stderr {
 					errStream = file
 				}
-				index = i;
+				index = i
 				break
 			}
 		}
@@ -55,7 +117,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(errStream, "%s\n", err.Error())
 		} else if out != "" {
-			fmt.Fprintf(outStream, "%s\n", out);
+			fmt.Fprintf(outStream, "%s\n", out)
 		}
 	}
 }
