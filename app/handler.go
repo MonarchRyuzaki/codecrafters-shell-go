@@ -67,6 +67,12 @@ func handleExternal(command string, args []string, outStream *os.File, errStream
 	if isBg {
 		jobID := AddJob(cmd.Process.Pid, command, args)
 		fmt.Printf("[%v] %d\n", jobID, cmd.Process.Pid)
+		
+		go func(id int, c *exec.Cmd) {
+			c.Wait()
+			MarkJobDone(id)
+		}(jobID, cmd)
+		
 		return "", nil
 	}
 
