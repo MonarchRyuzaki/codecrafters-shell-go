@@ -26,6 +26,8 @@ func Handler(command string, args []string, outStream *os.File, errStream *os.Fi
 		return handlePwd(args)
 	case "cd":
 		return handleCd(args)
+	case "complete":
+		return handleComplete(args)
 	default:
 		return handleExternal(command, args, outStream, errStream)
 	}
@@ -90,4 +92,15 @@ func handleCd(args []string) (string, error) {
 		return "", fmt.Errorf("cd: %v: No such file or directory", newDir)
 	}
 	return "", nil
+}
+
+func handleComplete(args []string) (string, error) {
+	switch args[0] {
+	case "-p", "-P":
+		prog := args[1]
+
+		return "", fmt.Errorf("complete: %v: no completion specification", prog)
+	default:
+		return "", fmt.Errorf("Invalid command");
+	}
 }
