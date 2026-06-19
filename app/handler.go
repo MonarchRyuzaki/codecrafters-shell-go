@@ -14,6 +14,7 @@ var builtinCommands = map[string]bool{
 	"pwd":      true,
 	"cd":       true,
 	"complete": true,
+	"jobs":     true,
 }
 
 var completionScript = map[string]string{}
@@ -114,6 +115,6 @@ func handleComplete(args []string) (string, error) {
 		delete(completionScript, prog)
 		return "", nil
 	default:
-		return "", fmt.Errorf("Invalid command");
+		return "", fmt.Errorf("Invalid command")
 	}
 }
