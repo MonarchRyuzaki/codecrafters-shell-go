@@ -109,7 +109,7 @@ func performCompletion(command []byte, typedPrefix string, matches []string, las
 					if lastSlash := strings.LastIndex(m[:len(m)-1], "/"); lastSlash != -1 {
 						displayName = m[lastSlash+1:]
 					}
-					displayMatches = append(displayMatches, strings.TrimRight(displayName, "/"))
+					displayMatches = append(displayMatches, displayName)
 				}
 
 				sort.Strings(displayMatches)
