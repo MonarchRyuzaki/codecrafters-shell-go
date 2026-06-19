@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 
 	"golang.org/x/term"
 )
@@ -64,71 +62,20 @@ func readCommand() (string, error) {
 			fmt.Print("\r\n")
 			return string(command), nil
 		case '\t': // Tab
-			typedStr := string(command)
-			var matches []string
-
-			for k := range autocompleteSet {
-				if strings.HasPrefix(k, typedStr) {
-					matches = append(matches, k)
-				}
-			}
-
-			if len(matches) == 1 {
-				matchedBuiltin := matches[0]
-
-				completion := matchedBuiltin[len(typedStr):] + " "
-
-				command = append(command, []byte(completion)...)
-
-				fmt.Print(completion)
-				lastTabPress = false 
-			} else if len(matches) > 1 {
-				lcp := matches[0]
-				for _, match := range matches[1:] {
-					i := 0
-					for i < len(lcp) && i < len(match) && lcp[i] == match[i] {
-						i++
-					}
-					lcp = lcp[:i]
-				}
-
-				if len(lcp) > len(typedStr) {
-					completion := lcp[len(typedStr):]
-					command = append(command, []byte(completion)...)
-					fmt.Print(completion)
-					
-					fmt.Print("\a") 
-					lastTabPress = false
-				} else {
-					if lastTabPress == false {
-						fmt.Print("\a")
-						lastTabPress = true
-					} else {
-						fmt.Print("\r\n")
-						sort.Strings(matches)
-						
-						fmt.Print(strings.Join(matches, "  ") + "\r\n")
-						fmt.Print("$ " + string(command))
-						lastTabPress = false
-					}
-				}
-			} else {
-				fmt.Print("\a")
-				lastTabPress = false
-			}
+			command, lastTabPress = handleAutocomplete(command, lastTabPress)
 
 		case '\x03': // Ctrl + C
 			fmt.Print("^C\r\n")
 			term.Restore(int(os.Stdin.Fd()), oldState)
 			os.Exit(0)
 		case '\x7f', '\b': // Backspace
-			lastTabPress = false 
+			lastTabPress = false
 			if len(command) > 0 {
 				command = command[:len(command)-1]
 				fmt.Print("\b \b")
 			}
 		default: // Normal character
-			lastTabPress = false 
+			lastTabPress = false
 			command = append(command, buf[0])
 			fmt.Print(string(buf[0]))
 		}
