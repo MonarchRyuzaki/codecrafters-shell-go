@@ -65,8 +65,8 @@ func handleExternal(command string, args []string, outStream *os.File, errStream
 	}
 
 	if isBg {
-		fmt.Printf("[%v] %d\n", bgCounter, cmd.Process.Pid)
-		bgCounter++
+		jobID := AddJob(cmd.Process.Pid, command, args)
+		fmt.Printf("[%v] %d\n", jobID, cmd.Process.Pid)
 		return "", nil
 	}
 
@@ -128,5 +128,5 @@ func handleComplete(args []string) (string, error) {
 }
 
 func handleJobs(args []string) (string, error) {
-	return "", nil
+	return PrintJobs(), nil
 }
