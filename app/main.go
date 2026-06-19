@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/term"
@@ -10,6 +11,34 @@ import (
 
 // Ensures gofmt doesn't remove the "fmt" import in stage 1 (feel free to remove this!)
 var _ = fmt.Print
+
+var autocompleteSet map[string]bool
+
+func init() {
+	autocompleteSet = make(map[string]bool)
+	for k, v := range builtinCommands {
+		autocompleteSet[k] = v
+	}
+	pathEnv := os.Getenv("PATH")
+	paths := filepath.SplitList(pathEnv)
+
+	for _, dir := range paths {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			name := entry.Name()
+			if !entry.IsDir() {
+				info, err := entry.Info()
+				if err == nil && info.Mode()&0111 != 0 {
+					autocompleteSet[name] = true
+				}
+			}
+		}
+	}
+}
 
 // ReadCommand puts the terminal in raw mode and reads keystrokes individually
 func readCommand() (string, error) {
@@ -36,7 +65,7 @@ func readCommand() (string, error) {
 			typedStr := string(command)
 			var matches []string
 
-			for k, _ := range builtinCommands {
+			for k := range autocompleteSet {
 				if strings.HasPrefix(k, typedStr) {
 					matches = append(matches, k)
 				}
