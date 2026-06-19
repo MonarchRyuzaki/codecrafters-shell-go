@@ -50,6 +50,11 @@ func completeExternalProgCommand(command []byte, comPath, cmdName, baseStr, pref
 	
 	cmd := exec.Command(comPath, cmdName, prefix, prevWord)
 	
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("COMP_LINE=%s", string(command)),
+		fmt.Sprintf("COMP_POINT=%d", len(command)),
+	)
+	
 	out, err := cmd.Output()
 	if err != nil {
 		fmt.Print("\a")
