@@ -31,6 +31,8 @@ func Handler(command string, args []string, outStream *os.File, errStream *os.Fi
 		return handleCd(args)
 	case "complete":
 		return handleComplete(args)
+	case "jobs":
+		return handleJobs(args)
 	default:
 		return handleExternal(command, args, outStream, errStream)
 	}
@@ -117,4 +119,8 @@ func handleComplete(args []string) (string, error) {
 	default:
 		return "", fmt.Errorf("Invalid command")
 	}
+}
+
+func handleJobs(args []string) (string, error) {
+	return "", nil
 }
