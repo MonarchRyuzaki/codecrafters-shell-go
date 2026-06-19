@@ -16,6 +16,8 @@ var builtinCommands = map[string]bool{
 	"complete": true,
 }
 
+var completionScript = map[string]string{}
+
 func Handler(command string, args []string, outStream *os.File, errStream *os.File) (string, error) {
 	switch command {
 	case "echo":
@@ -98,8 +100,15 @@ func handleComplete(args []string) (string, error) {
 	switch args[0] {
 	case "-p", "-P":
 		prog := args[1]
-
+		if path, exists := completionScript[prog]; exists {
+			return fmt.Sprintf("complete -C '%v' %v", path, prog), nil
+		}
 		return "", fmt.Errorf("complete: %v: no completion specification", prog)
+	case "-C", "-c":
+		path := args[1]
+		prog := args[2]
+		completionScript[prog] = path
+		return "", nil
 	default:
 		return "", fmt.Errorf("Invalid command");
 	}
