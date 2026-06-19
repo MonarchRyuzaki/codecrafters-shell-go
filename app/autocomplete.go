@@ -24,7 +24,7 @@ func handleAutocomplete(command []byte, lastTabPress bool) ([]byte, bool) {
 	cmdName := typedStr[:firstSpaceIndex]
 	
 	if comPath, exists := completionScript[cmdName]; exists {
-		return completeExternalProgCommand(command, comPath, cmdName, prefixToComplete, lastTabPress)
+		return completeExternalProgCommand(command, comPath, cmdName, baseStr, prefixToComplete, lastTabPress)
 	}
 	return completeFile(command, baseStr, prefixToComplete, lastTabPress)
 }
@@ -41,10 +41,14 @@ func completeCommand(command []byte, typedPrefix string, lastTabPress bool) ([]b
 	return performCompletion(command, typedPrefix, matches, lastTabPress, true)
 }
 
-func completeExternalProgCommand(command []byte, comPath, baseStr string, prefix string, lastTabPress bool) ([]byte, bool) {
-	cmdName := strings.TrimSpace(baseStr)
+func completeExternalProgCommand(command []byte, comPath, cmdName, baseStr, prefix string, lastTabPress bool) ([]byte, bool) {	
+	words := strings.Split(strings.TrimSpace(baseStr), " ")
+	prevWord := ""
+	if len(words) != 0 {
+		prevWord = words[len(words)-1]
+	}
 	
-	cmd := exec.Command(comPath, cmdName, prefix, cmdName)
+	cmd := exec.Command(comPath, cmdName, prefix, prevWord)
 	
 	out, err := cmd.Output()
 	if err != nil {
