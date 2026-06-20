@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/term"
 )
@@ -50,6 +51,7 @@ func readCommand() (string, error) {
 	var command []byte
 	buf := make([]byte, 1)
 	lastTabPress := false
+	historyIdx := len(history)
 
 	for {
 		_, err := os.Stdin.Read(buf)
@@ -58,6 +60,29 @@ func readCommand() (string, error) {
 		}
 
 		switch buf[0] {
+		case '\x1b':
+			seq := make([]byte, 2)
+			os.Stdin.Read(seq)
+			if seq[0] == '[' {
+				switch seq[1] {
+				case 'A': // Up
+					if historyIdx > 0 {
+						historyIdx--
+						command = []byte(strings.Join(history[historyIdx], " "))
+						fmt.Print("\x1b[2K\r$ " + string(command))
+					}
+				case 'B': // Down
+					if historyIdx < len(history) {
+						historyIdx++
+						if historyIdx == len(history) {
+							command = []byte("")
+						} else {
+							command = []byte(strings.Join(history[historyIdx], " "))
+						}
+						fmt.Print("\x1b[2K\r$ " + string(command))
+					}
+				}
+			}
 		case '\r', '\n': // Enter
 			fmt.Print("\r\n")
 			return string(command), nil
@@ -138,7 +163,7 @@ func main() {
 		if len(currentCmd) > 0 {
 			cmds = append(cmds, currentCmd)
 		}
-		
+
 		if len(cmds) == 0 {
 			continue
 		}
@@ -159,7 +184,7 @@ func main() {
 			if cmdName == "exit" {
 				break
 			}
-			
+
 			out, err := Handler(cmdName, args, outStream, errStream, isBackground)
 			if err != nil {
 				fmt.Fprintf(errStream, "%s\n", err.Error())
