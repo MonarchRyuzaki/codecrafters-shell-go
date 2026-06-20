@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"strconv"
@@ -254,9 +255,9 @@ func handleHistory(args []string) (string, error) {
 		}
 	}
 	var res strings.Builder
-	for i := len(history) - 1; i >= 0 && cnt >= 0; i-- {
-		fmt.Fprintf(&res, "%v %v", i+1, history[i])
+	for i := int(math.Max(0, float64(len(history)-cnt-1))); i < len(history) && cnt >= 0; i++ {
+		fmt.Fprintf(&res, "\t %v %v\n", i+1, strings.Join(history[i], " "))
 		cnt--
 	}
-	return res.String() ,nil
+	return strings.TrimSuffix(res.String(), "\n"), nil
 }
