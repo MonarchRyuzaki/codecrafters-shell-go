@@ -18,6 +18,7 @@ var builtinCommands = map[string]bool{
 	"complete": true,
 	"jobs":     true,
 	"history":  true,
+	"declare":  true,
 }
 
 var completionScript = map[string]string{}
