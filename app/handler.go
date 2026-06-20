@@ -138,58 +138,103 @@ func handleJobs(args []string) (string, error) {
 }
 
 func runPipeline(cmds [][]string, finalOut *os.File, finalErr *os.File, isBg bool) error {
-	var execCmds []*exec.Cmd
+	var waitFuncs []func() error
+	var nextStdin *os.File = os.Stdin
+	var lastPid int
 
-	for _, c := range cmds {
+	for i, c := range cmds {
 		if len(c) == 0 {
 			continue
 		}
-		cmd := exec.Command(c[0], c[1:]...)
-		execCmds = append(execCmds, cmd)
-	}
+		cmdName := c[0]
+		args := c[1:]
+		isLast := (i == len(cmds)-1)
 
-	for i := 0; i < len(execCmds)-1; i++ {
-		stdoutPipe, err := execCmds[i].StdoutPipe()
-		if err != nil {
-			return err
+		var outStream *os.File
+		var pipeReader *os.File
+		if isLast {
+			outStream = finalOut
+		} else {
+			var err error
+			pipeReader, outStream, err = os.Pipe()
+			if err != nil {
+				return err
+			}
 		}
-		execCmds[i+1].Stdin = stdoutPipe
-	}
 
-	execCmds[0].Stdin = os.Stdin
-	execCmds[len(execCmds)-1].Stdout = finalOut
+		currentStdin := nextStdin
 
-	for i := 0; i < len(execCmds); i++ {
-		execCmds[i].Stderr = finalErr
-	}
+		if builtinCommands[cmdName] {
+			errCh := make(chan error, 1)
+			go func(name string, args []string, in *os.File, out *os.File, isL bool) {
+				if in != os.Stdin {
+					defer in.Close()
+				}
+				if !isL {
+					defer out.Close()
+				}
+				outStr, err := Handler(name, args, out, finalErr, false)
+				if err != nil {
+					fmt.Fprintf(finalErr, "%s\n", err.Error())
+				} else if outStr != "" {
+					fmt.Fprintf(out, "%s\n", outStr)
+				}
+				errCh <- err
+			}(cmdName, args, currentStdin, outStream, isLast)
 
-	for _, cmd := range execCmds {
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("%v: command not found", cmd.Path)
+			waitFuncs = append(waitFuncs, func() error { return <-errCh })
+		} else {
+			cmd := exec.Command(cmdName, args...)
+			cmd.Stdin = currentStdin
+			cmd.Stdout = outStream
+			cmd.Stderr = finalErr
+
+			err := cmd.Start()
+			if err != nil {
+				fmt.Fprintf(finalErr, "%v: command not found\n", cmdName)
+			} else {
+				lastPid = cmd.Process.Pid
+			}
+
+			if !isLast {
+				outStream.Close()
+			}
+			if currentStdin != os.Stdin {
+				currentStdin.Close()
+			}
+
+			if err != nil {
+				waitFuncs = append(waitFuncs, func() error { return err })
+			} else {
+				waitFuncs = append(waitFuncs, func() error { return cmd.Wait() })
+			}
+		}
+
+		if !isLast {
+			nextStdin = pipeReader
 		}
 	}
 
 	if isBg {
-		lastCmd := execCmds[len(execCmds)-1]
 		var fullCmdStr []string
 		for _, c := range cmds {
 			fullCmdStr = append(fullCmdStr, strings.Join(c, " "))
 		}
 		cmdStr := strings.Join(fullCmdStr, " | ")
-		jobID := AddJob(lastCmd.Process.Pid, cmdStr, nil)
-		fmt.Printf("[%v] %d\n", jobID, lastCmd.Process.Pid)
+		jobID := AddJob(lastPid, cmdStr, nil)
+		fmt.Printf("[%v] %d\n", jobID, lastPid)
 
 		go func() {
-			for _, cmd := range execCmds {
-				cmd.Wait()
+			for _, wf := range waitFuncs {
+				wf()
 			}
 			MarkJobDone(jobID)
 		}()
 		return nil
 	}
 
-	for _, cmd := range execCmds {
-		cmd.Wait()
+	for _, wf := range waitFuncs {
+		wf()
 	}
 
 	return nil
