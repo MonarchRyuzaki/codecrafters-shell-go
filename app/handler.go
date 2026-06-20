@@ -255,7 +255,7 @@ func handleHistory(args []string) (string, error) {
 		}
 	}
 	var res strings.Builder
-	for i := int(math.Max(0, float64(len(history)-cnt-1))); i < len(history) && cnt >= 0; i++ {
+	for i := int(math.Max(0, float64(len(history)-cnt))); i < len(history) && cnt >= 0; i++ {
 		fmt.Fprintf(&res, "\t %v %v\n", i+1, strings.Join(history[i], " "))
 		cnt--
 	}
