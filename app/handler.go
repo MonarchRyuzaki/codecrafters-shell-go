@@ -39,6 +39,8 @@ func Handler(command string, args []string, outStream *os.File, errStream *os.Fi
 		return handleJobs(args)
 	case "history":
 		return handleHistory(args)
+	case "declare":
+		return handleDeclare(args)
 	default:
 		return handleExternal(command, args, outStream, errStream, isBg)
 	}
@@ -284,4 +286,28 @@ func handleHistory(args []string) (string, error) {
 		cnt--
 	}
 	return strings.TrimSuffix(res.String(), "\n"), nil
+}
+
+func handleDeclare(args []string) (string, error) {
+	x := args[0]
+	if x == "-p" {
+		k := args[1]
+		if val, exists := variableStore[k]; exists {
+			return fmt.Sprintf("declare -- %v=\"%v\"", k, val), nil
+		}
+		return "", fmt.Errorf("declare: %v: not found", k)
+	} else {
+		kvpair := strings.Split(x, "=")
+		if len(kvpair) == 1 {
+			return "", fmt.Errorf("declare: Invalid format")
+		}
+		k := kvpair[0]
+		v := kvpair[1]
+		_, err := strconv.Atoi(string(k[0]))
+		if err != nil  {
+			return "", fmt.Errorf("declare: `%v=%v': not a valid identifier", k, v)
+		}
+		variableStore[k] = v
+	}
+	return "", nil
 }
