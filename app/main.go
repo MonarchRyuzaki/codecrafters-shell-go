@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"golang.org/x/term"
@@ -127,6 +128,16 @@ func main() {
 		errStream := os.Stderr
 		history = append(history, result)
 		index := len(result)
+		envVarRe := regexp.MustCompile(`\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)`)
+		for i := 0; i < len(result); i++ {
+			result[i] = envVarRe.ReplaceAllStringFunc(result[i], func(match string) string {
+				varName := strings.Trim(match, "${}")
+				if val, exists := variableStore[varName]; exists {
+					return val
+				}
+				return ""
+			})
+		}
 		for i := 0; i < len(result); i++ {
 			if config, exists := redirectionMap[result[i]]; exists {
 				flags := os.O_CREATE | os.O_WRONLY
@@ -184,7 +195,7 @@ func main() {
 			if cmdName == "exit" {
 				file := os.Getenv("HISTFILE")
 				if len(file) != 0 {
-					WriteHistory(file,true)
+					WriteHistory(file, true)
 				}
 				break
 			}
