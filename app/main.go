@@ -182,6 +182,10 @@ func main() {
 			cmdName := cmds[0][0]
 			args := cmds[0][1:]
 			if cmdName == "exit" {
+				file := os.Getenv("HISTFILE")
+				if len(file) != 0 {
+					WriteHistory(file,true)
+				}
 				break
 			}
 
