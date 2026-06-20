@@ -303,8 +303,21 @@ func handleDeclare(args []string) (string, error) {
 		}
 		k := kvpair[0]
 		v := kvpair[1]
-		_, err := strconv.Atoi(string(k[0]))
-		if err == nil  {
+		valid := len(k) > 0
+		for i := 0; i < len(k); i++ {
+			c := k[i]
+			isAlpha := (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+			isNum := c >= '0' && c <= '9'
+			if i == 0 && !isAlpha {
+				valid = false
+				break
+			} else if i > 0 && !isAlpha && !isNum {
+				valid = false
+				break
+			}
+		}
+
+		if !valid {
 			return "", fmt.Errorf("declare: `%v=%v': not a valid identifier", k, v)
 		}
 		variableStore[k] = v
