@@ -6,6 +6,7 @@ import (
 )
 
 var history [][]string
+var lastAppendIdx int
 
 func init() {
 	history = make([][]string, 0)
@@ -27,26 +28,32 @@ func AppendHistory(filename string) error {
 			history = append(history, result)
 		}
 	}
+	lastAppendIdx = len(history)
 	return nil
 }
 
-func WriteHistory(filename string, append bool) error {
+func WriteHistory(filename string, appendFlag bool) error {
 	t := os.O_TRUNC
-	if append {
+	startIndex := 0
+	if appendFlag {
 		t = os.O_APPEND
+		startIndex = lastAppendIdx
 	}
+
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|t, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	for _, cmd := range history {
-		line := strings.Join(cmd, " ")
+	for i := startIndex; i < len(history); i++ {
+		line := strings.Join(history[i], " ")
 		_, err := file.WriteString(line + "\n")
 		if err != nil {
 			return err
 		}
 	}
+
+	lastAppendIdx = len(history)
 	return nil
 }
