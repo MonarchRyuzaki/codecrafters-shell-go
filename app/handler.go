@@ -246,6 +246,18 @@ func runPipeline(cmds [][]string, finalOut *os.File, finalErr *os.File, isBg boo
 }
 
 func handleHistory(args []string) (string, error) {
+	if len(args) > 0 {
+		flag := args[0]
+		switch flag {
+		case "-r":
+			if len(args) > 1 {
+				AppendHistory(args[1])
+			}
+			return "", nil
+		case "-w":
+			return "", nil
+		}
+	}
 	cnt := 1000
 	if len(args) != 0 {
 		var err error
