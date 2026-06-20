@@ -251,10 +251,21 @@ func handleHistory(args []string) (string, error) {
 		switch flag {
 		case "-r":
 			if len(args) > 1 {
-				AppendHistory(args[1])
+				err := AppendHistory(args[1])
+				return "", err
 			}
 			return "", nil
 		case "-w":
+			if len(args) > 1 {
+				err := WriteHistory(args[1], false)
+				return "", err
+			}
+			return "", nil
+		case "-a":
+			if len(args) > 1 {
+				err := WriteHistory(args[1], true)
+				return "", err
+			}
 			return "", nil
 		}
 	}
