@@ -127,17 +127,24 @@ func main() {
 		outStream := os.Stdout
 		errStream := os.Stderr
 		history = append(history, result)
-		index := len(result)
 		envVarRe := regexp.MustCompile(`\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)`)
+		var expandedArgs []string
 		for i := 0; i < len(result); i++ {
-			result[i] = envVarRe.ReplaceAllStringFunc(result[i], func(match string) string {
+			arg := result[i]
+			newArg := envVarRe.ReplaceAllStringFunc(arg, func(match string) string {
 				varName := strings.Trim(match, "${}")
 				if val, exists := variableStore[varName]; exists {
 					return val
 				}
 				return ""
 			})
+
+			if newArg != "" || arg == "" {
+				expandedArgs = append(expandedArgs, newArg)
+			}
 		}
+		result = expandedArgs
+		index := len(result)
 		for i := 0; i < len(result); i++ {
 			if config, exists := redirectionMap[result[i]]; exists {
 				flags := os.O_CREATE | os.O_WRONLY
