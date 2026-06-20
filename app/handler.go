@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -15,6 +16,7 @@ var builtinCommands = map[string]bool{
 	"cd":       true,
 	"complete": true,
 	"jobs":     true,
+	"history":  true,
 }
 
 var completionScript = map[string]string{}
@@ -33,6 +35,8 @@ func Handler(command string, args []string, outStream *os.File, errStream *os.Fi
 		return handleComplete(args)
 	case "jobs":
 		return handleJobs(args)
+	case "history":
+		return handleHistory(args)
 	default:
 		return handleExternal(command, args, outStream, errStream, isBg)
 	}
@@ -238,4 +242,21 @@ func runPipeline(cmds [][]string, finalOut *os.File, finalErr *os.File, isBg boo
 	}
 
 	return nil
+}
+
+func handleHistory(args []string) (string, error) {
+	cnt := 1000
+	if len(args) != 0 {
+		var err error
+		cnt, err = strconv.Atoi(args[0])
+		if err != nil {
+			return "", fmt.Errorf("invalid number: %v", args[0])
+		}
+	}
+	var res strings.Builder
+	for i := len(history) - 1; i >= 0 && cnt >= 0; i-- {
+		fmt.Fprintf(&res, "%v %v", i+1, history[i])
+		cnt--
+	}
+	return res.String() ,nil
 }

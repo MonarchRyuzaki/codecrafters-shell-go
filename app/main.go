@@ -100,6 +100,7 @@ func main() {
 		}
 		outStream := os.Stdout
 		errStream := os.Stderr
+		history = append(history, result)
 		index := len(result)
 		for i := 0; i < len(result); i++ {
 			if config, exists := redirectionMap[result[i]]; exists {
