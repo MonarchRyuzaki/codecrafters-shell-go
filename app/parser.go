@@ -38,6 +38,15 @@ func parseInput(input string) []string {
 			}
 		}
 
+		if c == '|' && !inSingleQuote && !inDoubleQuote {
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+			args = append(args, "|")
+			continue
+		}
+
 		if (c == ' ' || c == '\t') && !inSingleQuote && !inDoubleQuote {
 			if current.Len() > 0 {
 				args = append(args, current.String())

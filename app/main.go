@@ -122,22 +122,54 @@ func main() {
 				break
 			}
 		}
-		command = result[0]
-		args := result[1:index]
-		// fmt.Println(command, args)
-		if command == "exit" {
-			break
+		var cmds [][]string
+		var currentCmd []string
+		for _, arg := range result[:index] {
+			if arg == "|" {
+				if len(currentCmd) > 0 {
+					cmds = append(cmds, currentCmd)
+					currentCmd = nil
+				}
+			} else {
+				currentCmd = append(currentCmd, arg)
+			}
 		}
+		if len(currentCmd) > 0 {
+			cmds = append(cmds, currentCmd)
+		}
+		
+		if len(cmds) == 0 {
+			continue
+		}
+
 		isBackground := false
-		if len(args) > 0 && args[len(args) - 1] == "&" {
+		lastCmd := cmds[len(cmds)-1]
+		if len(lastCmd) > 0 && lastCmd[len(lastCmd)-1] == "&" {
 			isBackground = true
-			args = args[:len(args)-1]
+			lastCmd = lastCmd[:len(lastCmd)-1]
+			cmds[len(cmds)-1] = lastCmd
 		}
-		out, err := Handler(command, args, outStream, errStream, isBackground)
-		if err != nil {
-			fmt.Fprintf(errStream, "%s\n", err.Error())
-		} else if out != "" {
-			fmt.Fprintf(outStream, "%s\n", out)
+		if len(cmds) == 1 {
+			if len(cmds[0]) == 0 {
+				continue
+			}
+			cmdName := cmds[0][0]
+			args := cmds[0][1:]
+			if cmdName == "exit" {
+				break
+			}
+			
+			out, err := Handler(cmdName, args, outStream, errStream, isBackground)
+			if err != nil {
+				fmt.Fprintf(errStream, "%s\n", err.Error())
+			} else if out != "" {
+				fmt.Fprintf(outStream, "%s\n", out)
+			}
+		} else {
+			err := runPipeline(cmds, outStream, errStream, isBackground)
+			if err != nil {
+				fmt.Fprintf(errStream, "%s\n", err.Error())
+			}
 		}
 	}
 }

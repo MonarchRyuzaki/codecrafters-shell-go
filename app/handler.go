@@ -67,12 +67,12 @@ func handleExternal(command string, args []string, outStream *os.File, errStream
 	if isBg {
 		jobID := AddJob(cmd.Process.Pid, command, args)
 		fmt.Printf("[%v] %d\n", jobID, cmd.Process.Pid)
-		
+
 		go func(id int, c *exec.Cmd) {
 			c.Wait()
 			MarkJobDone(id)
 		}(jobID, cmd)
-		
+
 		return "", nil
 	}
 
@@ -135,4 +135,62 @@ func handleComplete(args []string) (string, error) {
 
 func handleJobs(args []string) (string, error) {
 	return PrintJobs(""), nil
+}
+
+func runPipeline(cmds [][]string, finalOut *os.File, finalErr *os.File, isBg bool) error {
+	var execCmds []*exec.Cmd
+
+	for _, c := range cmds {
+		if len(c) == 0 {
+			continue
+		}
+		cmd := exec.Command(c[0], c[1:]...)
+		execCmds = append(execCmds, cmd)
+	}
+
+	for i := 0; i < len(execCmds)-1; i++ {
+		stdoutPipe, err := execCmds[i].StdoutPipe()
+		if err != nil {
+			return err
+		}
+		execCmds[i+1].Stdin = stdoutPipe
+	}
+
+	execCmds[0].Stdin = os.Stdin
+	execCmds[len(execCmds)-1].Stdout = finalOut
+
+	for i := 0; i < len(execCmds); i++ {
+		execCmds[i].Stderr = finalErr
+	}
+
+	for _, cmd := range execCmds {
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("%v: command not found", cmd.Path)
+		}
+	}
+
+	if isBg {
+		lastCmd := execCmds[len(execCmds)-1]
+		var fullCmdStr []string
+		for _, c := range cmds {
+			fullCmdStr = append(fullCmdStr, strings.Join(c, " "))
+		}
+		cmdStr := strings.Join(fullCmdStr, " | ")
+		jobID := AddJob(lastCmd.Process.Pid, cmdStr, nil)
+		fmt.Printf("[%v] %d\n", jobID, lastCmd.Process.Pid)
+
+		go func() {
+			for _, cmd := range execCmds {
+				cmd.Wait()
+			}
+			MarkJobDone(jobID)
+		}()
+		return nil
+	}
+
+	for _, cmd := range execCmds {
+		cmd.Wait()
+	}
+
+	return nil
 }
