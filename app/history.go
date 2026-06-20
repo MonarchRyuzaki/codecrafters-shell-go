@@ -10,6 +10,10 @@ var lastAppendIdx int
 
 func init() {
 	history = make([][]string, 0)
+	file := os.Getenv("HISTFILE")
+	if len(file) != 0 {
+		AppendHistory(file)
+	}
 }
 
 func AppendHistory(filename string) error {
